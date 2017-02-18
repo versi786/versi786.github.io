@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESE532_HW3</title>
+<link rel="stylesheet" href="https://stackedit.io/res-min/themes/base.css" />
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+<body><div class="container"><h2 id="aasif-versi-hw3">Aasif Versi, HW3</h2>
+
+<p>Partner: Arvind Ramesh</p>
+
+<ol>
+<li><strong>Learning and Navigation</strong> <br>
+<ol><li>Had to delte mfpu flag rather than only appending the new one <br>
+<ol><li>Step 3</li>
+<li>Windows</li>
+<li>file VFP register arguments, other_file does not</li>
+<li>Deleted repeated flags so that only one version was present in the line.</li>
+<li>Found solution through experimenting</li></ol></li></ol></li>
+<li><strong>Self Learning</strong> <br>
+<ol><li>AVR Manual on neon intrinsics</li>
+<li>GCC manual on vectorizing code</li>
+<li><a href="http://www.drdobbs.com/programming-guidelines-for-vectorizing-c/184401611">http://www.drdobbs.com/programming-guidelines-for-vectorizing-c/184401611</a></li></ol></li>
+<li><strong>Teamwork</strong> <br>
+<ol><li>where when <br>
+<ol><li>K-lab 10am-2:30pm Monday</li>
+<li>K-lab 6pm - 2am Tuesday</li>
+<li>K-lab 6pm - FOREVER</li></ol></li>
+<li>We pair programmed on the lab computer and kept notes on our own computers.</li>
+<li>Pair programming helped with sanity checks and making sure that we were completing the correct steps for the assignment. Arvind was the one who was able to figure out about deleting the other compiler flags which I probably would not have even thought of. It also helped to bounce off ideas on how to use neon intrinsics to speed up our code. Furthermore it was easier to debug when we had two eyes looking at the error messages.</li></ol></li>
+<li><p><strong>Neon Intrinsics</strong></p>
+
+<ol><li>What is the range of <br>
+<ol><li>The difference between two pixes <br>
+<ul><li>max difference: <script type="math/tex" id="MathJax-Element-1233">255</script></li>
+<li>min difference: <script type="math/tex" id="MathJax-Element-1234">-255</script></li>
+<li>fits in <script type="math/tex" id="MathJax-Element-1235">9 \text{ bits}</script></li></ul></li>
+<li>absolute value of the difference <br>
+<ul><li>max abs value: <script type="math/tex" id="MathJax-Element-1236">255</script></li>
+<li>min abs value: <script type="math/tex" id="MathJax-Element-1237">0</script></li>
+<li>fits in <script type="math/tex" id="MathJax-Element-1238">8 \text{ bits}</script></li></ul></li>
+<li>sum of all absolute differences <br>
+<ul><li>Max sum value: 32,986</li>
+<li>Min sum value: 0</li>
+<li>fits in 16 bits</li></ul></li></ol></li>
+<li>What is the maximum number of sums that we can store in a Neon register during a SAD computation? <br>
+<ul><li>We can store up to 16 absolute diffrences in a neon register because of the <code>uint8x16_t</code> type which uses the 128 bit registers and allows us to store.  This is followed by 8 pairwise sums of the 16 numbers we have. Which go into <code>uint16x8</code> which allows us to store 8, 16 bit accumulations and sums in the 128 bit registers.</li></ul></li>
+<li><p>Accelerated code</p>
+
+<pre class="prettyprint"><code class="language-c hljs ">
+<span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> dist_v(blk1,blk2,lx)
+<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *blk1,*blk2;
+<span class="hljs-keyword">int</span> lx;
+{
+    <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> ticks = sds_clock_counter();
+    <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *p1,*p2;
+    <span class="hljs-keyword">int</span> y;
+
+    p1 = blk1;
+    p2 = blk2;
+
+    uint8x16_t abs_diff,a,b; <span class="hljs-comment">//16 lanes of 8 bits</span>
+    uint16x8_t sum, acc;
+    uint32x4_t acc_2;
+    uint64x2_t acc_3;
+
+    acc = vdupq_n_u16(<span class="hljs-number">0</span>); <span class="hljs-comment">// Initilize the 8 lanes (of 16 bits) accumulator to 0</span>
+    <span class="hljs-keyword">for</span> (y=<span class="hljs-number">0</span>; y&lt;<span class="hljs-number">16</span>; y++)
+    {
+
+        <span class="hljs-comment">// Load the first 16 values of p1 and p2 into a and b</span>
+        a = vld1q_u8(p1);
+        b = vld1q_u8(p2);
+        abs_diff = vabdq_u8(a,b);<span class="hljs-comment">// Compute the absolute difference of a &amp; b</span>
+        sum =  vpaddlq_u8(abs_diff); <span class="hljs-comment">//Convert the abs_diff into 16 bit sums</span>
+        acc = vaddq_u16(acc,sum); <span class="hljs-comment">// Accumulate the sums</span>
+        p1 += lx;
+        p2 += lx;
+    }
+    <span class="hljs-comment">// Now we have 8 lanes of 16 bit verctors. We do a pair wise combnine to get down to a single 16 bit value</span>
+
+    acc_2 = vpaddlq_u16(acc);
+    acc_3 = vpaddlq_u32(acc_2);
+
+    <span class="hljs-keyword">int</span> total_sum = vgetq_lane_u64(acc_3,<span class="hljs-number">0</span>) + vgetq_lane_u64(acc_3,<span class="hljs-number">1</span>);
+    gTicks += sds_clock_counter() - ticks;
+    <span class="hljs-keyword">return</span> total_sum;
+}</code></pre></li>
+<li>Report timing <br>
+<ol><li>Original version <br>
+<ul><li>Total ticks in dist: <script type="math/tex" id="MathJax-Element-1239">22,333,527,400 \text{ ticks}</script> per call to dist</li>
+<li>Total time in dist: <script type="math/tex" id="MathJax-Element-1240">33.5 \text{ seconds}</script></li></ul></li>
+<li>NEON intrinsics <br>
+<ul><li>Total ticks in dist: <script type="math/tex" id="MathJax-Element-1241">3,965,493,668 \text{ ticks}</script></li>
+<li>Time time in dist: <script type="math/tex" id="MathJax-Element-1242">5.9482 \text{ seconds}</script></li></ul></li></ol></li>
+<li><script type="math/tex" id="MathJax-Element-1243">5.631</script> times speedup of the dist fucntion</li>
+<li>Our neon intrinsic code is faster because it does not have to read every byte of data out of memory individually. We can do 16 reads in parallel which takes care of loading all of the a’s, and then do another 16 read in parallel which takes care of reading all the b’s. After this step we can do all the pair wise absolute differences in one instruction. Finally we can do a sum tree because the sums are commutative and do not be done in order.</li>
+<li>For dist on its own, the latency and resource bound do not come from reading or writing to the SD card, they come from getting data in and out of memory. In the original verison of the code each byte of data was manually taken out of data. This gave us a very low throughput coming out of memory. In the vectorized version this throughput is greatly increased because we can load all of the data out of memory with one vector instruction. We are also converting the difference and absolute value steps which would have been done seperately into something that should be compiled into one assembly instruction. For this reason we are decreasing the resource bound and for this reason decreasing the latency bound, meaning we can read more data and compute on it faster.</li>
+<li>Execution time with 02 optimization <br>
+<ul><li>Original Version  <br>
+<ul><li>total ticks: <script type="math/tex" id="MathJax-Element-1244">34580767852 \text{ ticks}</script></li>
+<li>total time of whole program: <script type="math/tex" id="MathJax-Element-1245">51.87 \text{ seconds}</script></li></ul></li>
+<li>Neon Version <br>
+<ul><li>total ticks: <script type="math/tex" id="MathJax-Element-1246">16457684768 \text{ ticks}</script></li>
+<li>total time of whole program: <script type="math/tex" id="MathJax-Element-1247">24.68 \text{ seconds}</script></li></ul></li></ul></li>
+<li>We achieved a speedup is <script type="math/tex" id="MathJax-Element-1248">2.10</script></li>
+<li>Below is a picture of the initial ratio of computation time. <br>
+<ol><li><img src="https://scontent-iad3-1.xx.fbcdn.net/v/t35.0-12/16442962_10211954408873558_590806397_o.jpg?oh=3945f184b0146a24de513f17f02fe9c2&amp;oe=58949AFD" alt="enter image description here" title=""></li>
+<li>Assuming infinite speedup <script type="math/tex; mode=display" id="MathJax-Element-1249">\frac{1}{1-Y} = \frac{1}{1-.622} = 2.64 \text{ times speedup}</script> </li>
+<li>Using our actual speedup <script type="math/tex; mode=display" id="MathJax-Element-1250">\frac{1}{1-p} + \frac{p}{s} = \frac{1}{1-62.2} + \frac{62.2}{5.56} = 2.05 \text{ times speedup}</script></li>
+<li>This means theoretical maximum speedup, if dist takes up most of the time in motion estimation, we would get at most a speedup of <script type="math/tex" id="MathJax-Element-1251">2.64</script> and we got a <script type="math/tex" id="MathJax-Element-1252">2.1</script> time speedup, meaning we did a pretty good job. This also means our calculation and actual speedup are pretty close <script type="math/tex" id="MathJax-Element-1253">2.05</script> and <script type="math/tex" id="MathJax-Element-1254">2.1</script> respectively.</li></ol></li></ol></li>
+<li><p><strong>Compiler Optimizations</strong></p>
+
+<ol><li>Latency for vector with -O0 <br>
+<ul><li><script type="math/tex" id="MathJax-Element-1255">34416507517\text{ ticks}\div 29553972\text{ calls to dist} / (666.67 * 10^6) \text{ clock cycles / second}</script></li>
+<li><script type="math/tex" id="MathJax-Element-1256">1.75 × 10^-6 \text{ seconds}</script> latency per call to dist</li>
+<li>Total of <script type="math/tex" id="MathJax-Element-1257">51.6 \text{ seconds}</script> in dist without optimization</li></ul></li>
+<li><p>Assembly code from above </p>
+
+<pre class="prettyprint"><code class="language-armasm hljs perl">    <span class="hljs-number">280</span>         <span class="hljs-keyword">for</span> (<span class="hljs-keyword">y</span>=<span class="hljs-number">0</span>; <span class="hljs-keyword">y</span>&lt;<span class="hljs-number">16</span>; <span class="hljs-keyword">y</span>++)
+    <span class="hljs-number">281</span>         {
+    <span class="hljs-number">282</span>       
+    <span class="hljs-number">283</span>             // Load the first <span class="hljs-number">16</span> <span class="hljs-keyword">values</span> of p1 <span class="hljs-keyword">and</span> p2 into a <span class="hljs-keyword">and</span> b
+    <span class="hljs-number">00101</span>bf4:   mov     r3, <span class="hljs-comment">#0</span>
+    <span class="hljs-number">00101</span>bf8:   str     r3, [r11, <span class="hljs-comment">#-16]</span>
+    <span class="hljs-number">00101</span>bfc:   b       +<span class="hljs-number">244</span>    ; addr=<span class="hljs-number">0x00101cf8</span>: dist_v + <span class="hljs-number">0x0000014c</span>
+    <span class="hljs-number">00101</span>c0<span class="hljs-number">0</span>:   ldr     r3, [r11, <span class="hljs-comment">#-8]</span>
+    <span class="hljs-number">00101</span>c04:   str     r3, [r11, <span class="hljs-comment">#-152]</span>
+     <span class="hljs-number">8724</span>       <span class="hljs-keyword">return</span> (uint8x16_t)__builtin_neon_vld1v16qi ((const __builtin_neon_qi <span class="hljs-variable">*)</span> __a);
+    <span class="hljs-number">00101</span>c08:   ldr     r3, [r11, <span class="hljs-comment">#-152]</span>
+    <span class="hljs-number">00101</span>c0c:   vld1.<span class="hljs-number">8</span>  {d16-d17}, [r3]
+
+    <span class="hljs-number">284</span>             a = vld1q_u8(p1);
+    <span class="hljs-number">00101</span>c1<span class="hljs-number">0</span>:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #60
+    00101c14:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>c18:   ldr     r3, [r11, <span class="hljs-comment">#-12]</span>
+    <span class="hljs-number">00101</span>c1c:   str     r3, [r11, <span class="hljs-comment">#-156]</span>
+
+
+    <span class="hljs-number">285</span>             b = vld1q_u8(p2);
+    <span class="hljs-number">00101</span>c28:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #76
+    00101c2c:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>c3<span class="hljs-number">0</span>:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #60
+    00101c34:   vld1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>c38:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #172
+    00101c3c:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>c4<span class="hljs-number">0</span>:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #76
+    00101c44:   vld1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>c48:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #188
+    00101c4c:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+
+
+    <span class="hljs-number">286</span>             abs_diff = vabdq_u8(a,b);<span class="hljs-regexp">//</span> Compute the absolute difference of a &amp; b
+    <span class="hljs-number">00101</span>c64:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #92
+    00101c68:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>c6c:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #92
+    00101c70:   vld1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>c74:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #204
+    00101c78:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+
+    <span class="hljs-number">287</span>             sum =  vpaddlq_u8(abs_diff); <span class="hljs-regexp">//</span>Convert the abs_diff into <span class="hljs-number">16</span> bit sums
+    <span class="hljs-number">00101</span>c88:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #108
+    00101c8c:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>c9<span class="hljs-number">0</span>:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #36
+    00101c94:   vld1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>c98:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #220
+    00101c9c:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>ca<span class="hljs-number">0</span>:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #108
+    00101ca4:   vld1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>ca8:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #236
+    00101cac:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+
+    <span class="hljs-number">294</span>         acc_2 = vpaddlq_u16(acc);
+    <span class="hljs-number">00101</span>d2<span class="hljs-number">0</span>:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #124
+    00101d24:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>d28:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #124
+    00101d2c:   vld1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>d3<span class="hljs-number">0</span>:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #268
+    00101d34:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+
+    <span class="hljs-number">295</span>         acc_3 = vpaddlq_u32(acc_2);   
+    <span class="hljs-number">00101</span>d44:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #140
+    00101d48:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>d4c:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #140
+    00101d50:   vld1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+    <span class="hljs-number">00101</span>d54:   <span class="hljs-sub"><span class="hljs-keyword">sub</span>     r3, r11, #284
+    00101d58:   vst1.64 {</span>d16-d17}, [r3<span class="hljs-variable">@64</span>]
+
+    <span class="hljs-number">297</span>         <span class="hljs-keyword">int</span> total_sum = vgetq_lane_u64(acc_3,<span class="hljs-number">0</span>) + vgetq_lane_u64(acc_3,<span class="hljs-number">1</span>);
+    <span class="hljs-number">00101</span>d84:   mov     r3, r<span class="hljs-number">0</span>
+    <span class="hljs-number">00101</span>d88:   add     r3, r2, r3
+    <span class="hljs-number">00101</span>d8c:   str     r3, [r11, <span class="hljs-comment">#-144]</span></code></pre></li>
+<li><p>Latency with -O2</p>
+
+<ul><li><script type="math/tex" id="MathJax-Element-1258">3989779664 \div 29553972 \div (666.67 * 10^6)</script></li>
+<li>Latency of <script type="math/tex" id="MathJax-Element-1259">2.02 * 10 ^{-7}\text{ seconds}</script> per call to dist</li>
+<li>Total time spent in dist <script type="math/tex" id="MathJax-Element-1260">5.98 \text{ seconds}</script></li></ul></li>
+<li><p>Machine code with -O2, with our comments of what we see correlates</p>
+
+<pre class="prettyprint"><code class=" hljs avrasm">for (<span class="hljs-built_in">y</span>=<span class="hljs-number">0</span><span class="hljs-comment">; y&lt;16; y++)</span>
+{
+
+    // Load the first <span class="hljs-number">16</span> values of p1 <span class="hljs-keyword">and</span> p2 into a <span class="hljs-keyword">and</span> b
+    a = vld1q_u8(p1)<span class="hljs-comment">;</span>
+    b = vld1q_u8(p2)<span class="hljs-comment">;</span>
+    abs_diff = vabdq_u8(a,b)<span class="hljs-comment">;// Compute the absolute difference of a &amp; b</span>
+    sum =  vpaddlq_u8(abs_diff)<span class="hljs-comment">; //Convert the abs_diff into 16 bit sums</span>
+    acc = vaddq_u16(acc,sum)<span class="hljs-comment">; // Accumulate the sums</span>
+    p1 += lx<span class="hljs-comment">;</span>
+    p2 += lx<span class="hljs-comment">;</span>
+}
+
+
+<span class="hljs-number">001010</span>c4:   vld1<span class="hljs-number">.8</span>  {d16-d17}, [<span class="hljs-built_in">r5</span>] // a
+<span class="hljs-number">001010</span>c8:   subs    <span class="hljs-built_in">r3</span>, <span class="hljs-built_in">r3</span>, <span class="hljs-preprocessor">#1 // for loop subtraction?</span>
+<span class="hljs-number">001010</span>cc:   <span class="hljs-keyword">add</span>     <span class="hljs-built_in">r5</span>, <span class="hljs-built_in">r5</span>, <span class="hljs-built_in">r8</span> // pointer
+<span class="hljs-number">001010</span>d0:   vld1<span class="hljs-number">.8</span>  {d18-d19}, [<span class="hljs-built_in">r2</span>] // b 
+<span class="hljs-number">001010</span>d4:   <span class="hljs-keyword">add</span>     <span class="hljs-built_in">r2</span>, <span class="hljs-built_in">r2</span>, <span class="hljs-built_in">r8</span> // pointer
+<span class="hljs-number">001010</span>d8:   vabd<span class="hljs-preprocessor">.u</span>8 q8, q8, q9 // abs diff
+<span class="hljs-number">001010</span>dc:   vpaddl<span class="hljs-preprocessor">.u</span>8 q8, q8 // sum
+<span class="hljs-number">001010e0</span>:   vadd<span class="hljs-preprocessor">.i</span>16 q10, q10, q8 // acc</code></pre></li>
+<li><p>Why is it important to turn on optimization?</p>
+
+<ul><li>In the un-optimized version we see that a load and store is occurring after each operation.  This means that it is doing exactly what we are asking for. Meaning that we are able to do things like debug and look at the memory locations where the variables live. In the optimized version things are executed out of order. like the pointer additions happen before the accumulator. Finally the result is only stored into memory at the very end, once we are done doing computation in the registers.</li></ul></li></ol></li>
+<li><p>Auto Vectorization Attempts</p>
+
+<ol><li>We used these flags <code>-ftree-vectorize -ftree-vectorizer-verbose=2 -fopt-info-vec-optimized</code> which allowed for the baseline code to be optimized</li>
+<li>O2 optimization with auto vectorization <br>
+<ul><li>Total Ticks for entire program: <script type="math/tex" id="MathJax-Element-1261">23169834133</script></li>
+<li>Total time for entire program: <script type="math/tex" id="MathJax-Element-1262">34.75 \text{ seconds}</script></li>
+<li>Total Ticks for the dist function: <script type="math/tex" id="MathJax-Element-1263">8882922127</script></li>
+<li>Total time for dist function: <script type="math/tex" id="MathJax-Element-1264">13.32 \text{ seconds}</script></li></ul></li>
+<li><p>Attempts at updating dist function</p>
+
+<ol><li><p>Calculate absolute value manually so the compiler knows there is no data dependency, in case it does not know where abs is defined. This will ensure that the compiler knows that this data does not have a dependency and can be optimized. This did not work and gave us approximately the same time spent in the dist function of approximately <script type="math/tex" id="MathJax-Element-1265">13\text{ seconds}</script>.</p>
+
+<pre class="prettyprint"><code class=" hljs objectivec"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> dist_v2(blk1,blk2,lx)
+<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *blk1,*blk2;
+<span class="hljs-keyword">int</span> lx;
+{
+<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> ticks = sds_clock_counter();
+<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *p1,*p2;
+<span class="hljs-keyword">int</span> y,x;
+<span class="hljs-keyword">int</span> s,abs_val;
+<span class="hljs-comment">//int difference = 0;</span>
+<span class="hljs-comment">//int absoluteValue = 0;</span>
+
+s = <span class="hljs-number">0</span>;
+abs_val = <span class="hljs-number">0</span>;
+p1 = blk1;
+p2 = blk2;
+
+<span class="hljs-keyword">for</span> (y=<span class="hljs-number">0</span>; y&lt;<span class="hljs-number">16</span>; y++)
+{
+    <span class="hljs-keyword">for</span> (x = <span class="hljs-number">0</span>; x &lt; <span class="hljs-number">16</span>; x++){
+        abs_val = p1[x] - p2[x];
+        abs_val = (abs_val &lt; <span class="hljs-number">0</span>) ? -abs_val : abs_val ;
+        s+= abs_val;
+    }
+    p1 += lx;
+    p2 += lx;
+}
+
+gTicks += sds_clock_counter() - ticks;
+<span class="hljs-keyword">return</span> s;
+}</code></pre></li>
+<li><p>Try to ensure that the compiler knows that the two arrays are not overlapping. This again would ensure that the compiler knows that the data is not being written over for some reason, and it is safe to load out both chunks of memory at the same time. Again this gave us the same value of about <script type="math/tex" id="MathJax-Element-1266">13\text{ seconds}</script> spent inside of dist.</p>
+
+<pre class="prettyprint"><code class=" hljs cpp"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> dist_v2(blk1,blk2,lx)
+<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *blk1,*blk2;
+<span class="hljs-keyword">int</span> lx;
+{
+    <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> ticks = sds_clock_counter();
+    <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *p1,*p2;
+    <span class="hljs-keyword">int</span> y,x;
+    <span class="hljs-keyword">int</span> s,abs_val;
+    <span class="hljs-comment">//int difference = 0;</span>
+    <span class="hljs-comment">//int absoluteValue = 0;</span>
+
+    s = <span class="hljs-number">0</span>;
+    abs_val = <span class="hljs-number">0</span>;
+    p1 = blk1;
+    p2 = blk2;
+
+    <span class="hljs-keyword">for</span> (y=<span class="hljs-number">0</span>; y&lt;<span class="hljs-number">16</span>; y++)
+    {
+        <span class="hljs-keyword">if</span> (p1 + <span class="hljs-number">16</span> &lt; p2 || p2 + <span class="hljs-number">16</span> &lt; p1) {
+            <span class="hljs-comment">// safe to vectorize, no overlap</span>
+            <span class="hljs-keyword">for</span> (x = <span class="hljs-number">0</span>; x &lt; <span class="hljs-number">16</span>; x++){
+                s += <span class="hljs-built_in">abs</span>(p1[x] - p2[x]);
+            }
+        } <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">// could be unsafe to vectorize, arrays overlap.</span>
+            <span class="hljs-keyword">for</span> (x = <span class="hljs-number">0</span>; x &lt; <span class="hljs-number">16</span>; x++){
+                s += <span class="hljs-built_in">abs</span>(p1[x] - p2[x]);
+            }
+        }
+        p1 += lx;
+        p2 += lx;
+    }
+
+    gTicks += sds_clock_counter() - ticks;
+    <span class="hljs-keyword">return</span> s;
+}</code></pre></li>
+<li>We tried to use the GCC ivdep directive. This simply meant adding <code>pragma GCC ivdep</code> before the inner for loop. Again this made no difference and gave the same time spent in dist of around 13 seconds.</li>
+<li>We tried to manually unroll the loop. to again try to give the compiler more information about the lack of data detpendency, but this time the total time spent in dist went up to 19 seconds. <br>
+<pre class="prettyprint"><code class=" hljs cpp"><span class="hljs-keyword">static</span> <span class="hljs-keyword">int</span> dist_v2(blk1,blk2,lx)
+<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *blk1,*blk2;
+<span class="hljs-keyword">int</span> lx;
+{
+<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> ticks = sds_clock_counter();
+<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *p1,*p2;
+<span class="hljs-keyword">int</span> y,x;
+<span class="hljs-keyword">int</span> s,abs_val;
+<span class="hljs-comment">//int difference = 0;</span>
+<span class="hljs-comment">//int absoluteValue = 0;</span>
+
+s = <span class="hljs-number">0</span>;
+abs_val = <span class="hljs-number">0</span>;
+p1 = blk1;
+p2 = blk2;
+
+<span class="hljs-keyword">for</span> (y=<span class="hljs-number">0</span>; y&lt;<span class="hljs-number">16</span>; y++)
+{
+    <span class="hljs-comment">// Manually unroll loop so compiler knows they indep</span>
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">0</span>] - p2[<span class="hljs-number">0</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">1</span>] - p2[<span class="hljs-number">1</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">2</span>] - p2[<span class="hljs-number">2</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">3</span>] - p2[<span class="hljs-number">3</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">4</span>] - p2[<span class="hljs-number">4</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">5</span>] - p2[<span class="hljs-number">5</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">6</span>] - p2[<span class="hljs-number">6</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">7</span>] - p2[<span class="hljs-number">7</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">8</span>] - p2[<span class="hljs-number">8</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">9</span>] - p2[<span class="hljs-number">9</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">10</span>] - p2[<span class="hljs-number">10</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">11</span>] - p2[<span class="hljs-number">11</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">12</span>] - p2[<span class="hljs-number">12</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">13</span>] - p2[<span class="hljs-number">13</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">14</span>] - p2[<span class="hljs-number">14</span>]);
+    s += <span class="hljs-built_in">abs</span>(p1[<span class="hljs-number">15</span>] - p2[<span class="hljs-number">15</span>]);
+
+    p1 += lx;
+    p2 += lx;
+}
+
+gTicks += sds_clock_counter() - ticks;
+<span class="hljs-keyword">return</span> s;
+}</code></pre></li></ol></li>
+<li><p>None of our updated implementations increased the speed up from auto-vectorization, our best auto vectorized code was the same as the original version, meaning there are no new times to report.</p></li>
+<li>Again, because our best version of the auto-vectorized code was the same as the original there are no key changes to report</li></ol></li>
+</ol></div></body>
+</html>
