@@ -231,7 +231,7 @@
         </tbody>
         <tbody id="TC">
           <tr>
-            <td>TCDL</td>
+            <td>TCS</td>
             <td><Rd>Rd</Rd> = (~{<Rs>Rs</Rs>,<Rt>Rt</Rt>} + 1)[WORD_SIZE-1:0] # Rd == Rt</td>
             <td>1010 0<Rd>ddd dd</Rd><Rs>ss sss</Rs><Rt>t tttt</Rt></td>
           </tr>
@@ -239,11 +239,6 @@
             <td>TCDH</td>
             <td><Rd>Rd</Rd> = (~{<Rs>Rs</Rs>,<Rt>Rt</Rt>} + 1)[2*WORD_SIZE-1:WORD_SIZE] # Rd == Rs</td>
             <td>1010 1<Rd>ddd dd</Rd><Rs>ss sss</Rs><Rt>t tttt</Rt></td>
-          </tr>
-          <tr>
-            <td>TCS</td>
-            <td><Rd>Rd</Rd> = ~<Rs>Rs</Rs>[WORD_SIZE-1] + 1</td>
-            <td>1011 0<Rd>ddd dd</Rd><Rs>ss sss</Rs><Rt>t tttt</Rt></td>
           </tr>
         </tbody>
       </table>
