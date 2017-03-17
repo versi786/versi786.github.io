@@ -152,7 +152,7 @@
         <tbody id="reg-jumps">
           <tr>
             <td>JSR &lt;Label&gt;</td>
-            <td>R7 = PC + 1; PC = (PC & 0x8000) | (<imm>IMM11</imm> &lt;&lt; 4 offset to &lt;Label&gt;)</td>
+            <td>R7 = PC + 1; PC = PC + 1 + sext(<imm>IMM9</imm> offset to &lt;Label&gt;)</td>
             <td>0100 0<x>xxx x</x><imm>iii iiii iiii</imm></td>
           </tr>
         </tbody>
