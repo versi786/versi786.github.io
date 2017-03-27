@@ -230,19 +230,26 @@
         </tbody>
         <tbody id="TC">
           <tr>
-            <td>TCS <Rd>Rd</Rd> <Rs>Rs</Rs></td>
-            <td><Rd>Rd</Rd> = (~<Rs>Rs</Rs> + 1)</td>
+            <td>TCS <Rd>Rd</Rd></td>
+            <td><Rd>Rd</Rd> = (~<Rs>Rd</Rs> + 1)</td>
             <td>1010 0<Rd>ddd dd</Rd><Rs>ss sss</Rs><x>x xxxx</x></td>
           </tr>
           <tr>
-            <td>TCDH <Rd>Rd</Rd> <Rs>Rs</Rs></td>
-            <td><Rd>Rd</Rd> = (~{<Rs>Rs</Rs>,prev} + 1)[2*WORD_SIZE-1:WORD_SIZE] # Rd == Rs, prev insn must be TCS of low bits</td>
+            <td>TCDH <Rd>Rd</Rd></td>
+            <td><Rd>Rd</Rd> = (~{<Rs>Rd</Rs>,prev} + 1)[2*WORD_SIZE-1:WORD_SIZE] # Rd == Rs, prev insn must be TCS of low bits</td>
             <td>1010 1<Rd>ddd dd</Rd><Rs>ss sss</Rs><x>x xxxx</x></td>
           </tr>
         </tbody>
         <tbody id="ADDC">
           <tr>
             <td>ADDC <Rd>Rd</Rd> <Rs>Rs</Rs></td>
+            <td><Rd>Rd</Rd> = (<Rs>Rs</Rs> + carry)</td>
+            <td>1011 0<Rd>ddd dd</Rd><Rs>ss sss</Rs><x>x xxxx</x></td>
+          </tr>
+        </tbody>
+         <tbody id="CAR">
+          <tr>
+            <td>GCAR <Rd>Rd</Rd> <Rs>Rs</Rs></td>
             <td><Rd>Rd</Rd> = (<Rs>Rs</Rs> + carry)</td>
             <td>1011 0<Rd>ddd dd</Rd><Rs>ss sss</Rs><x>x xxxx</x></td>
           </tr>
