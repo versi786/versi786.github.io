@@ -250,7 +250,7 @@
         <tbody id="CAR">
           <tr>
             <td>GCAR <Rd>Rd</Rd> <Rs>Rs</Rs></td>
-            <td><Rd>Rd</Rd> = (<Rs>Rs</Rs> + carry)</td>
+            <td><Rd>Rd</Rd> = carry</td>
             <td>1011 1<Rd>ddd dd</Rd><Rs>ss sss</Rs><x>x xxxx</x></td>
           </tr>
         </tbody>
@@ -260,6 +260,12 @@
             <td>R32-- (external reg needs to be set by DMA)</td>
             <td>1100 0<Rd>ddd dd</Rd><Rs>ss sss</Rs><x>x xxxx</x></td>
           </tr>
+          <tr>
+            <td>SFL</td>
+            <td>Float = <Rs>Rs</Rs></td>
+            <td>1100 0<x>xxx xx</x><Rs>ss sss</Rs><x>x xxxx</x></td>
+          </tr>
+
         </tbody>
       </table>
       <br/>
