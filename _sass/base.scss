@@ -1,5 +1,5 @@
 /*
-   original: https://github.com/pages-themes/hacker 
+   original: https://github.com/pages-themes/hacker
 */
 
 @import "rouge-base16-dark";
@@ -160,6 +160,7 @@ pre {
   text-wrap: normal;
   overflow: auto;
   overflow-y: hidden;
+  white-space: pre-wrap;
 }
 
 code.highlighter-rouge {
