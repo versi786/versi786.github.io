@@ -1,5 +1,5 @@
 # Goals
-The goal of this post is to create a minimal recreation of [playerctl](https://github.com/altdesktop/playerctl), which is a command line tool that allows you to control media players on Linux by sending commands to the player application using [D-Bus](https://www.freedesktop.org/wiki/Software/dbus/).
+The goal of this post is to create a minimal recreation of [playerctl](https://github.com/altdesktop/playerctl), which is a command line tool that allows you to control media players on Linux by sending commands to the player application using [D-Bus](https://www.freedesktop.org/wiki/Software/dbus/). The final code can be found [here](https://github.com/versi786/dbus-audio-controller/blob/master/main.cpp)
 
 # What is D-BUS?
 D-Bus is a message bus system that allows for applications on a single machine to communicate with each other through a daemon. D-Bus supplies two message buses, one called the 'System Bus' and one called the 'Session Bus'. The system bus is used for system wide or operating system events such as "new hardware device added". The Session bus is created per user and allows for applications that are running for one user to comunicate with each other. The full specification for dbus can be found [here](https://dbus.freedesktop.org/doc/dbus-specification.html)
@@ -128,7 +128,10 @@ Using the `d-feet` we can extract the XML of the schema of the interface by usin
 </node>
 ```
 
-# Setup on ubuntu
+We are going to take advantage of the `org.mpris.MediaPlayer2.Player` interface and the `PlayPause`, `Skip` and `Previous` methods to control our media players.
+
+## Setup on ubuntu
+We will need to understand the following tools in order to build the code we will creating.
 ```
 sudo apt install -y cmake
 sudo apt install -y libglib2.0-dev
@@ -137,191 +140,31 @@ sudo apt-get -y install dbus libdbus-1-dev libdbus-glib-1-2 libdbus-glib-1-dev
 sudo apt-get install libboost-all-dev
 ```
 
-# Get XML of interface
-* Install `d-feet` by running `sudo apt install -y d-feet`
-* Start your media application, in my case, spotify.
-* Start `d-feet`
-* Go to the Session bus tab search for MediaPlayer2
-* Expand `Interfaces`-> `org.freedesktop.DBus.Introspectable` -> `Methods`
-* Double click on `Introspect()`, then click Execute
-* In the ouput you should get the following:
-    ```
-    ('<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection '
-    '1.0//EN"\n'
-    '                      '
-    '"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">\n'
-    '<!-- GDBus 2.56.4 -->\n'
-    '<node>\n'
-    '  <interface name="org.freedesktop.DBus.Properties">\n'
-    '    <method name="Get">\n'
-    '      <arg type="s" name="interface_name" direction="in"/>\n'
-    '      <arg type="s" name="property_name" direction="in"/>\n'
-    '      <arg type="v" name="value" direction="out"/>\n'
-    '    </method>\n'
-    '    <method name="GetAll">\n'
-    '      <arg type="s" name="interface_name" direction="in"/>\n'
-    '      <arg type="a{sv}" name="properties" direction="out"/>\n'
-    '    </method>\n'
-    '    <method name="Set">\n'
-    '      <arg type="s" name="interface_name" direction="in"/>\n'
-    '      <arg type="s" name="property_name" direction="in"/>\n'
-    '      <arg type="v" name="value" direction="in"/>\n'
-    '    </method>\n'
-    '    <signal name="PropertiesChanged">\n'
-    '      <arg type="s" name="interface_name"/>\n'
-    '      <arg type="a{sv}" name="changed_properties"/>\n'
-    '      <arg type="as" name="invalidated_properties"/>\n'
-    '    </signal>\n'
-    '  </interface>\n'
-    '  <interface name="org.freedesktop.DBus.Introspectable">\n'
-    '    <method name="Introspect">\n'
-    '      <arg type="s" name="xml_data" direction="out"/>\n'
-    '    </method>\n'
-    '  </interface>\n'
-    '  <interface name="org.freedesktop.DBus.Peer">\n'
-    '    <method name="Ping"/>\n'
-    '    <method name="GetMachineId">\n'
-    '      <arg type="s" name="machine_uuid" direction="out"/>\n'
-    '    </method>\n'
-    '  </interface>\n'
-    '  <interface name="org.mpris.MediaPlayer2">\n'
-    '    <method name="Raise"/>\n'
-    '    <method name="Quit"/>\n'
-    '    <property type="b" name="CanQuit" access="read"/>\n'
-    '    <property type="b" name="CanRaise" access="read"/>\n'
-    '    <property type="b" name="HasTrackList" access="read"/>\n'
-    '    <property type="s" name="Identity" access="read"/>\n'
-    '    <property type="s" name="DesktopEntry" access="read"/>\n'
-    '    <property type="as" name="SupportedUriSchemes" access="read"/>\n'
-    '    <property type="as" name="SupportedMimeTypes" access="read"/>\n'
-    '  </interface>\n'
-    '  <interface name="org.mpris.MediaPlayer2.Player">\n'
-    '    <method name="Next"/>\n'
-    '    <method name="Previous"/>\n'
-    '    <method name="Pause"/>\n'
-    '    <method name="PlayPause"/>\n'
-    '    <method name="Stop"/>\n'
-    '    <method name="Play"/>\n'
-    '    <method name="Seek">\n'
-    '      <arg type="x" name="Offset" direction="in"/>\n'
-    '    </method>\n'
-    '    <method name="SetPosition">\n'
-    '      <arg type="o" name="TrackId" direction="in"/>\n'
-    '      <arg type="x" name="Position" direction="in"/>\n'
-    '    </method>\n'
-    '    <method name="OpenUri">\n'
-    '      <arg type="s" name="Uri" direction="in"/>\n'
-    '    </method>\n'
-    '    <signal name="Seeked">\n'
-    '      <arg type="x" name="Position"/>\n'
-    '    </signal>\n'
-    '    <property type="s" name="PlaybackStatus" access="read"/>\n'
-    '    <property type="s" name="LoopStatus" access="readwrite"/>\n'
-    '    <property type="d" name="Rate" access="readwrite"/>\n'
-    '    <property type="b" name="Shuffle" access="readwrite"/>\n'
-    '    <property type="a{sv}" name="Metadata" access="read"/>\n'
-    '    <property type="d" name="Volume" access="readwrite"/>\n'
-    '    <property type="x" name="Position" access="read"/>\n'
-    '    <property type="d" name="MinimumRate" access="read"/>\n'
-    '    <property type="d" name="MaximumRate" access="read"/>\n'
-    '    <property type="b" name="CanGoNext" access="read"/>\n'
-    '    <property type="b" name="CanGoPrevious" access="read"/>\n'
-    '    <property type="b" name="CanPlay" access="read"/>\n'
-    '    <property type="b" name="CanPause" access="read"/>\n'
-    '    <property type="b" name="CanSeek" access="read"/>\n'
-    '    <property type="b" name="CanControl" access="read"/>\n'
-    '  </interface>\n'
-    '</node>\n')
-    ```
-* After some cleanup we get:
-    ```
-    <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
-                        "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
-    <!-- GDBus 2.56.4 -->
-    <node>
-    <interface name="org.freedesktop.DBus.Properties">
-        <method name="Get">
-        <arg type="s" name="interface_name" direction="in"/>
-        <arg type="s" name="property_name" direction="in"/>
-        <arg type="v" name="value" direction="out"/>
-        </method>
-        <method name="GetAll">
-        <arg type="s" name="interface_name" direction="in"/>
-        <arg type="a{sv}" name="properties" direction="out"/>
-        </method>
-        <method name="Set">
-        <arg type="s" name="interface_name" direction="in"/>
-        <arg type="s" name="property_name" direction="in"/>
-        <arg type="v" name="value" direction="in"/>
-        </method>
-        <signal name="PropertiesChanged">
-        <arg type="s" name="interface_name"/>
-        <arg type="a{sv}" name="changed_properties"/>
-        <arg type="as" name="invalidated_properties"/>
-        </signal>
-    </interface>
-    <interface name="org.freedesktop.DBus.Introspectable">
-        <method name="Introspect">
-        <arg type="s" name="xml_data" direction="out"/>
-        </method>
-    </interface>
-    <interface name="org.freedesktop.DBus.Peer">
-        <method name="Ping"/>
-        <method name="GetMachineId">
-        <arg type="s" name="machine_uuid" direction="out"/>
-        </method>
-    </interface>
-    <interface name="org.mpris.MediaPlayer2">
-        <method name="Raise"/>
-        <method name="Quit"/>
-        <property type="b" name="CanQuit" access="read"/>
-        <property type="b" name="CanRaise" access="read"/>
-        <property type="b" name="HasTrackList" access="read"/>
-        <property type="s" name="Identity" access="read"/>
-        <property type="s" name="DesktopEntry" access="read"/>
-        <property type="as" name="SupportedUriSchemes" access="read"/>
-        <property type="as" name="SupportedMimeTypes" access="read"/>
-    </interface>
-    <interface name="org.mpris.MediaPlayer2.Player">
-        <method name="Next"/>
-        <method name="Previous"/>
-        <method name="Pause"/>
-        <method name="PlayPause"/>
-        <method name="Stop"/>
-        <method name="Play"/>
-        <method name="Seek">
-        <arg type="x" name="Offset" direction="in"/>
-        </method>
-        <method name="SetPosition">
-        <arg type="o" name="TrackId" direction="in"/>
-        <arg type="x" name="Position" direction="in"/>
-        </method>
-        <method name="OpenUri">
-        <arg type="s" name="Uri" direction="in"/>
-        </method>
-        <signal name="Seeked">
-        <arg type="x" name="Position"/>
-        </signal>
-        <property type="s" name="PlaybackStatus" access="read"/>
-        <property type="s" name="LoopStatus" access="readwrite"/>
-        <property type="d" name="Rate" access="readwrite"/>
-        <property type="b" name="Shuffle" access="readwrite"/>
-        <property type="a{sv}" name="Metadata" access="read"/>
-        <property type="d" name="Volume" access="readwrite"/>
-        <property type="x" name="Position" access="read"/>
-        <property type="d" name="MinimumRate" access="read"/>
-        <property type="d" name="MaximumRate" access="read"/>
-        <property type="b" name="CanGoNext" access="read"/>
-        <property type="b" name="CanGoPrevious" access="read"/>
-        <property type="b" name="CanPlay" access="read"/>
-        <property type="b" name="CanPause" access="read"/>
-        <property type="b" name="CanSeek" access="read"/>
-        <property type="b" name="CanControl" access="read"/>
-    </interface>
-    </node>
+## Generating code to interface with dbus
+In order to use the D-Bus api we will use [GIO GDBusConnection](https://developer.gnome.org/gio/stable/GDBusConnection.html). This allows us to use `gdbus-codegen` which will create the scaffolding code that we need in order to easily send commands using D-Bus. In order to generate the header and source file for the xml from above using the command: `gdbus-codegen --generate-c-code generated_mediaplayer2 ./org_mpris_mediaplayer2.xml`.
 
-    ```
-* generate the header and source file for this xml using the command: `gdbus-codegen --generate-c-code generated_mediaplayer2 ./org_mpris_mediaplayer2.xml`
+## Using the generated interface
+The generated header file provides functions that make easier for us to by taking care of the heavy lifting. For example in order to create a client that can communicate to `org.mpris.MediaPlayer2.vlc`. We will first create a proxy:
+``` c++
+    OrgMprisMediaPlayer2Player *playerProxy;
+    playerProxy = org_mpris_media_player2_player_proxy_new_for_bus_sync(
+        G_BUS_TYPE_SESSION,
+        G_DBUS_PROXY_FLAGS_NONE,
+        "org.mpris.MediaPlayer2.vlc",
+        "/org/mpris/MediaPlayer2",
+        NULL,
+        &error);
+```
+
+We can then call the PlayPause function like this:
+``` c++
+    gboolean ret = org_mpris_media_player2_player_call_play_pause_sync(
+        playerProxy, NULL, &error);
+```
+
+The final code that sends the command to each media player can be found [here](https://github.com/versi786/dbus-audio-controller/blob/master/main.cpp#L91)
+
+# Find all applications which implement a given interface
 
 # References
 * DBUS tutorial: https://dbus.freedesktop.org/doc/dbus-tutorial.html
