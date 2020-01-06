@@ -7,13 +7,13 @@ published: true
 The goal of this post is to create a minimal recreation of [playerctl](https://github.com/altdesktop/playerctl), which is a command line tool that allows you to control media players on Linux by sending commands to the player application using [D-Bus](https://www.freedesktop.org/wiki/Software/dbus/). The final code can be found [here](https://github.com/versi786/dbus-audio-controller/blob/master/main.cpp)
 
 # What is D-BUS?
-D-Bus is a message bus system that allows for applications on a single machine to communicate with each other through a daemon. D-Bus supplies two message buses, one called the 'System Bus' and one called the 'Session Bus'. The system bus is used for system wide or operating system events such as "new hardware device added". The Session bus is created per user and allows for applications that are running for one user to comunicate with each other. The full specification for dbus can be found [here](https://dbus.freedesktop.org/doc/dbus-specification.html)
+D-Bus is a message bus system that allows for applications on a single machine to communicate with each other through a daemon. D-Bus supplies two message buses, one called the 'System Bus' and one called the 'Session Bus'. The system bus is used for system wide or operating system events such as "new hardware device added". The Session bus is created per user and allows for applications that are running for one user to communicate with each other. The full specification for dbus can be found [here](https://dbus.freedesktop.org/doc/dbus-specification.html)
 
 ## The Basics
-Using a tool like [`d-feet`](https://wiki.gnome.org/Apps/DFeet) we can inspect the 'System Bus' and 'Session Bus'. Each application that connects to System or Session bus is identified by a *unique name* (1.175) and *name* (org.mpris.MediaPlayer2.vlc)
+Using a tool like [`d-feet`](https://wiki.gnome.org/Apps/DFeet) we can inspect the 'System Bus' and 'Session Bus'. Each application that connects to System or Session bus is identified by a *unique name* (1.175) and *name* (org.mpris.MediaPlayer2.vlc). For a detailed explanation of dbus concepts I highly recommend [this](https://pydbus.readthedocs.io/en/latest/dbusaddressing.html) article which explains them in a 'Pythonic' way.
+
 ![media player search](/assets/images/2019-12-31-dbus-media-controller/d-feet-media-player.png)
 
-TODO Explain concepts of *Object Path*, *Interface*, *Method*, *Signal*. This seems like a good place to [start](https://pydbus.readthedocs.io/en/latest/dbusaddressing.html)
 
 # Using DBUS To control media players
 
@@ -95,7 +95,21 @@ We are going to list all applications that are connected to D-Bus and then filte
     }
 ```
 
-The final code can be found [here](https://github.com/versi786/dbus-audio-controller/blob/7b5769ef1bcf412e4d79275dd200e97b1ce2bc94/main.cpp#L25) with the necessary error checking.
+The final code can be found [here](https://github.com/versi786/dbus-audio-controller/blob/2277f83d71aa545a66eb73d97678a0838e42f5c3/main.cpp#L29) with the necessary error checking.
+
+## The final program
+
+Building the final program, which you can find [here](https://github.com/versi786/dbus-audio-controller), Allows us to control our media players through a convenient command line interface.
+
+``` bash
+$ ./dbusAudioController -h
+Send the following command on all players connected to session DBus.:
+  -h [ --help ]         Help screen
+  --play-pause          Play/Pause
+  --next                Next
+  --prev                Previous
+  --debug               Enable debug logging
+```
 
 
 
