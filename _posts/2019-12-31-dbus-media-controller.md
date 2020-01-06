@@ -22,116 +22,7 @@ Most things that use D-BUS provide a well known interface. In this case we know 
 
 ![d-feet introspect](/assets/images/2019-12-31-dbus-media-controller/d-feet-introspect.png)
 
-Using the `d-feet` we can extract the XML of the schema of the interface by using the `org.freedesktop.DBus.Introspectable` interface that it also exposes. We can double click on `Introspect()`(1) which will create a pop up window where we can click `Execute`(2). The `Method output`(3) will contain a pretty printed output, which we can use `python3` and in the simply type `print` and paste the text copied from the method output, which will then give us the output print:
-``` xml
-<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
-"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
-<node>
-  <interface name="org.freedesktop.DBus.Introspectable">
-    <method name="Introspect">
-      <arg name="data" direction="out" type="s"/>
-    </method>
-  </interface>
-  <interface name="org.freedesktop.DBus.Properties">
-    <method name="Get">
-      <arg direction="in" type="s"/>
-      <arg direction="in" type="s"/>
-      <arg direction="out" type="v"/>
-    </method>
-    <method name="Set">
-      <arg direction="in" type="s"/>
-      <arg direction="in" type="s"/>
-      <arg direction="in" type="v"/>
-    </method>
-    <method name="GetAll">
-      <arg direction="in" type="s"/>
-      <arg direction="out" type="a{sv}"/>
-    </method>
-    <signal name="PropertiesChanged">
-      <arg type="s"/>
-      <arg type="a{sv}"/>
-      <arg type="as"/>
-    </signal>
-  </interface>
-  <interface name="org.mpris.MediaPlayer2">
-    <property name="Identity" type="s" access="read" />
-    <property name="DesktopEntry" type="s" access="read" />
-    <property name="SupportedMimeTypes" type="as" access="read" />
-    <property name="SupportedUriSchemes" type="as" access="read" />
-    <property name="HasTrackList" type="b" access="read" />
-    <property name="CanQuit" type="b" access="read" />
-    <property name="CanSetFullscreen" type="b" access="read" />
-    <property name="Fullscreen" type="b" access="readwrite" />
-    <property name="CanRaise" type="b" access="read" />
-    <method name="Quit" />
-    <method name="Raise" />
-  </interface>
-  <interface name="org.mpris.MediaPlayer2.Player">
-    <property name="Metadata" type="a{sv}" access="read" />
-    <property name="PlaybackStatus" type="s" access="read" />
-    <property name="LoopStatus" type="s" access="readwrite" />
-    <property name="Volume" type="d" access="readwrite" />
-    <property name="Shuffle" type="d" access="readwrite" />
-    <property name="Position" type="i" access="read" />
-    <property name="Rate" type="d" access="readwrite" />
-    <property name="MinimumRate" type="d" access="readwrite" />
-    <property name="MaximumRate" type="d" access="readwrite" />
-    <property name="CanControl" type="b" access="read" />
-    <property name="CanPlay" type="b" access="read" />
-    <property name="CanPause" type="b" access="read" />
-    <property name="CanSeek" type="b" access="read" />
-    <method name="Previous" />
-    <method name="Next" />
-    <method name="Stop" />
-    <method name="Play" />
-    <method name="Pause" />
-    <method name="PlayPause" />
-    <method name="Seek">
-      <arg type="x" direction="in" />
-    </method>    <method name="OpenUri">
-      <arg type="s" direction="in" />
-    </method>
-    <method name="SetPosition">
-      <arg type="o" direction="in" />
-      <arg type="x" direction="in" />
-    </method>
-  </interface>
-  <interface name="org.mpris.MediaPlayer2.TrackList">
-    <property name="Tracks" type="ao" access="read" />
-    <property name="CanEditTracks" type="b" access="read" />
-    <method name="GetTracksMetadata">
-      <arg type="ao" direction="in" />
-      <arg type="aa{sv}" direction="out" />
-    </method>
-    <method name="AddTrack">
-      <arg type="s" direction="in" />
-      <arg type="o" direction="in" />
-      <arg type="b" direction="in" />
-    </method>
-    <method name="RemoveTrack">
-      <arg type="o" direction="in" />
-    </method>
-    <method name="GoTo">
-      <arg type="o" direction="in" />
-    </method>
-    <signal name="TrackListReplaced">
-      <arg type="ao" />
-      <arg type="o" />
-    </signal>
-    <signal name="TrackAdded">
-      <arg type="a{sv}" />
-      <arg type="o" />
-    </signal>
-    <signal name="TrackRemoved">
-      <arg type="o" />
-    </signal>
-    <signal name="TrackMetadataChanged">
-      <arg type="o" />
-      <arg type="a{sv}" />
-    </signal>
-  </interface>
-</node>
-```
+Using the `d-feet` we can extract the XML of the schema of the interface by using the `org.freedesktop.DBus.Introspectable` interface that it also exposes. We can double click on `Introspect()`(1) which will create a pop up window where we can click `Execute`(2). The `Method output`(3) will contain a pretty printed output, which we can use `python3` and in the simply type `print` and paste the text copied from the method output, which will then give us [this](https://github.com/versi786/dbus-audio-controller/blob/master/org_mpris_mediaplayer2.xml) output.
 
 We are going to take advantage of the `org.mpris.MediaPlayer2.Player` interface and the `PlayPause`, `Skip` and `Previous` methods to control our media players.
 
@@ -173,6 +64,40 @@ The final code that sends the command to each media player can be found [here](h
 
 ## Replace hardcoded VLC
 We probably don't want to hard code vlc in our program, and would like to be able to send commands to any media player that is running on our computer. We could go down the same route of user the code generator to be able to interact with the underlying dbus system, but the code that it generates is quite ugly, which you can take a look at [here](https://github.com/versi786/dbus-audio-controller/blob/c93ec857e2e6a737afdf5868c044ec78e9fc1ce1/generated_dbus.h). The function we would be interested in would be `org_freedesktop_dbus_call_list_names_sync`, because we want to list everything on the Session Bus. My issue with this interface it is unclear who is responsible for managing the memory for the `gchar ***`, and what happens if you don't allocate a large enough block of memory when you call the function, since there is no option to pass in a size. So I took the easier route of following the [example](https://github.com/altdesktop/playerctl/blob/11501fc39f93bcb867ec1ecd2300bc39ec12d015/playerctl/playerctl-player.c#L830-L882) of player-ctl and calling the underlying GIO api directly rather than using the generated code.
+
+
+We are going to list all applications that are connected to D-Bus and then filter out everything that hast the `org.mpris.MediaPlayer2.` prefix. By doing something similar to the following code (which does not show any of the error checking):
+
+``` c++
+ std::vector<std::string> players;
+ GDBusProxy *proxy = g_dbus_proxy_new_for_bus_sync(bus_type,
+                                                      G_DBUS_PROXY_FLAGS_NONE,
+                                                      NULL,
+                                                      "org.freedesktop.DBus",
+                                                      "/org/freedesktop/DBus",
+                                                      "org.freedesktop.DBus",
+                                                      NULL,
+                                                      &tmp_error);
+    GVariant *reply = g_dbus_proxy_call_sync(
+        proxy, "ListNames", NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, &tmp_error);
+
+    GVariant *reply_child = g_variant_get_child_value(reply, 0);
+    gsize reply_count;
+    const gchar **names = g_variant_get_strv(reply_child, &reply_count);
+
+    size_t offset = strlen(MPRIS_PREFIX);
+    for (gsize i = 0; i < reply_count; i += 1) {
+        if (g_str_has_prefix(names[i], MPRIS_PREFIX)) {
+            const char *player_name = names[i] + offset;
+            players.push_back(player_name);
+            std::cout << "found: " << player_name << std::endl;
+        }
+    }
+```
+
+The final code can be found [here](https://github.com/versi786/dbus-audio-controller/blob/7b5769ef1bcf412e4d79275dd200e97b1ce2bc94/main.cpp#L25) with the necessary error checking.
+
+
 
 # References
 * [DBUS tutorial: https://dbus.freedesktop.org/doc/dbus-tutorial.html](DBUS tutorial: https://dbus.freedesktop.org/doc/dbus-tutorial.html)
