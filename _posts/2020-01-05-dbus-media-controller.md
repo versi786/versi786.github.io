@@ -4,10 +4,10 @@ published: true
 ---
 
 # Goals
-The goal of this post is to create a minimal recreation of [playerctl](https://github.com/altdesktop/playerctl), which is a command line tool that allows you to control media players on Linux by sending commands to the player application using [D-Bus](https://www.freedesktop.org/wiki/Software/dbus/). The final code can be found [here](https://github.com/versi786/dbus-audio-controller/blob/master/main.cpp)
+The goal of this post is to create a minimal recreation of [playerctl](https://github.com/altdesktop/playerctl), which is a command line tool that allows you to control media players on Linux by sending commands to the player application using [D-Bus](https://www.freedesktop.org/wiki/Software/dbus/). The final code can be found [here](https://github.com/versi786/dbus-audio-controller/blob/master/main.cpp).
 
 # What is D-BUS?
-D-Bus is a message bus system that allows for applications on a single machine to communicate with each other through a daemon. D-Bus supplies two message buses, one called the 'System Bus' and one called the 'Session Bus'. The system bus is used for system wide or operating system events such as "new hardware device added". The Session bus is created per user and allows for applications that are running for one user to communicate with each other. The full specification for dbus can be found [here](https://dbus.freedesktop.org/doc/dbus-specification.html)
+D-Bus is a message bus system that allows for applications on a single machine to communicate with each other through a daemon. D-Bus supplies two message buses, one called the 'System Bus' and one called the 'Session Bus'. The system bus is used for system wide or operating system events such as "new hardware device added". The Session bus is created per user and allows for applications that are running for one user to communicate with each other. The full specification for dbus can be found [here](https://dbus.freedesktop.org/doc/dbus-specification.html).
 
 ## The Basics
 Using a tool like [`d-feet`](https://wiki.gnome.org/Apps/DFeet) we can inspect the 'System Bus' and 'Session Bus'. Each application that connects to System or Session bus is identified by a *unique name* (1.175) and *name* (org.mpris.MediaPlayer2.vlc). For a detailed explanation of dbus concepts I highly recommend [this](https://pydbus.readthedocs.io/en/latest/dbusaddressing.html) article which explains them in a 'Pythonic' way.
@@ -60,7 +60,7 @@ We can then call the PlayPause function like this:
 
 There you have it! After that line of code runs, whatever media was playing on vlc should be played or paused.
 
-The final code that sends the command to each media player can be found [here](https://github.com/versi786/dbus-audio-controller/blob/master/main.cpp#L91)
+The final code that sends the command to each media player can be found [here](https://github.com/versi786/dbus-audio-controller/blob/master/main.cpp#L91).
 
 ## Replace hardcoded VLC
 We probably don't want to hard code vlc in our program, and would like to be able to send commands to any media player that is running on our computer. We could go down the same route of user the code generator to be able to interact with the underlying dbus system, but the code that it generates is quite ugly, which you can take a look at [here](https://github.com/versi786/dbus-audio-controller/blob/c93ec857e2e6a737afdf5868c044ec78e9fc1ce1/generated_dbus.h). The function we would be interested in would be `org_freedesktop_dbus_call_list_names_sync`, because we want to list everything on the Session Bus. My issue with this interface it is unclear who is responsible for managing the memory for the `gchar ***`, and what happens if you don't allocate a large enough block of memory when you call the function, since there is no option to pass in a size. So I took the easier route of following the [example](https://github.com/altdesktop/playerctl/blob/11501fc39f93bcb867ec1ecd2300bc39ec12d015/playerctl/playerctl-player.c#L830-L882) of player-ctl and calling the underlying GIO api directly rather than using the generated code.
@@ -99,7 +99,7 @@ The final code can be found [here](https://github.com/versi786/dbus-audio-contro
 
 ## The final program
 
-Building the final program, which you can find [here](https://github.com/versi786/dbus-audio-controller), Allows us to control our media players through a convenient command line interface.
+Building the final program, which you can find [here](https://github.com/versi786/dbus-audio-controller), allows us to control our media players through a convenient command line interface.
 
 ``` bash
 $ ./dbusAudioController -h
