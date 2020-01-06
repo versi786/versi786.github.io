@@ -167,17 +167,19 @@ We can then call the PlayPause function like this:
         playerProxy, NULL, &error);
 ```
 
+There you have it! After that line of code runs, whatever media was playing on vlc should be played or paused.
+
 The final code that sends the command to each media player can be found [here](https://github.com/versi786/dbus-audio-controller/blob/master/main.cpp#L91)
 
-# Find all applications which implement a given interface
+## Replace hardcoded VLC
+We probably don't want to hard code vlc in our program, and would like to be able to send commands to any media player that is running on our computer. We could go down the same route of user the code generator to be able to interact with the underlying dbus system, but the code that it generates is quite ugly, which you can take a look at [here](https://github.com/versi786/dbus-audio-controller/blob/c93ec857e2e6a737afdf5868c044ec78e9fc1ce1/generated_dbus.h). The function we would be interested in would be `org_freedesktop_dbus_call_list_names_sync`, because we want to list everything on the Session Bus. My issue with this interface it is unclear who is responsible for managing the memory for the `gchar ***`, and what happens if you don't allocate a large enough block of memory when you call the function, since there is no option to pass in a size. So I took the easier route of following the [example](https://github.com/altdesktop/playerctl/blob/11501fc39f93bcb867ec1ecd2300bc39ec12d015/playerctl/playerctl-player.c#L830-L882) of player-ctl and calling the underlying GIO api directly rather than using the generated code.
 
 # References
-* DBUS tutorial: https://dbus.freedesktop.org/doc/dbus-tutorial.html
-* GIO Reference on GDBusConnection: https://www.freedesktop.org/software/gstreamer-sdk/data/docs/latest/gio/GDBusConnection.html
-* https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-names-bus
-* https://specifications.freedesktop.org/mpris-spec/latest/
-* https://dubstepdish.com/index.php/2018/10/21/playerctl-at-version-2-0/
-* https://github.com/altdesktop/playerctl
-* https://gi.readthedocs.io/en/latest/
-* DBUS naming: http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html
-* Using dbus public api: https://github.com/makercrew/dbus-sample
+* [DBUS tutorial: https://dbus.freedesktop.org/doc/dbus-tutorial.html](DBUS tutorial: https://dbus.freedesktop.org/doc/dbus-tutorial.html)
+* GIO Reference on GDBusConnection: [https://www.freedesktop.org/software/gstreamer-sdk/data/docs/latest/gio/GDBusConnection.html](https://www.freedesktop.org/software/gstreamer-sdk/data/docs/latest/gio/GDBusConnection.html)
+* [https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-names-bus](https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-names-bus)
+* [https://specifications.freedesktop.org/mpris-spec/latest/](https://specifications.freedesktop.org/mpris-spec/latest/)
+* [https://dubstepdish.com/index.php/2018/10/21/playerctl-at-version-2-0/](https://dubstepdish.com/index.php/2018/10/21/playerctl-at-version-2-0/)
+* [https://github.com/altdesktop/playerctl](https://github.com/altdesktop/playerctl)
+* DBUS naming: [http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html](http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html)
+* Using dbus public api: [https://github.com/makercrew/dbus-sample](https://github.com/makercrew/dbus-sample)
