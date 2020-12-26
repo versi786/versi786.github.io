@@ -1,0 +1,35 @@
+---
+title: DIY Dynamic DNS with Cloudflare
+published: true
+---
+
+# Goals
+I have a server in my home which I would like to be able to ssh to from anywhere, but since I am on a residential internet plan, my ISP is allowed to change my public IP address at will.One option would be to use the dynamic DNS that is baked into my [TP Link router](https://www.tp-link.com/us/support/faq/1367/). I had used [www.noip.com](http://www.noip.com), but their yearly cost at time of writing is $25 per year. I already own a domain name, [aasifversi.com](http://aasifversi.com), and I am able to write code, there must be a DNS provider that has a usable API. As I was searching I found that [Cloudflare](http://www.cloudflare.com) had great [documentation](https://api.cloudflare.com/) for their API and ["at-cost"](https://www.cloudflare.com/products/registrar/) pricing for renewals, so I transfered my dns from [Hover](http://www.hover.com) to [Cloudflare](http://www.cloudflare.com). Transferring to Cloudflare meant that I could not only reduce my costs for owning a domain, but also set up my own dynamic DNS.
+
+# Instructions
+1. Create a Cloudflare API token with the permissions that are described [here](https://github.com/AnalogJ/lexicon/blob/985611b18ff8be389c500eb3021aef74ad48bf34/lexicon/providers/cloudflare.py#L19-L25) by Lexicon, using the Cloudflare instruction [here](https://support.cloudflare.com/hc/en-us/articles/200167836-Managing-API-Tokens-and-Keys)
+1. Clone [cloudflare-dns-updater](https://github.com/versi786/cloudflare-dns-updater)
+1. Create a `.env` file in the in the root directory of the cloned repo and insert a single line with `LEXICON_CLOUDFLARE_AUTH_TOKEN=<Token from Cloudflare>`
+1. Install all the dependencies
+    ```bash
+    python3 -m pipenv install
+    ```
+1. Test maunally by running the following command:
+    ```bash
+    python3 -m pipenv run python cloudflare-dns-updater.py --domain example.com --subdomain test
+    ```
+1. Run the following command, update the domain and subdomain
+    ```bash
+    echo "cd ${PWD} && python3 -m pipenv run python cloudflare-dns-updater.py --domain example.com --subdomain test"
+    ```
+1. Run crontab -e and add the following, which will update our DNS every 10 minutes:
+    ```crontab
+    */10 * * * * <output from previous step>
+    ```
+
+1. If you would like to se the output of the cron jobs you can install postfix and take a look at `/var/mail/${USER}`.
+1. After some time (about 30 minutes) has passed confirm that the DNS entry has been updated by running `dig test.example.com`
+
+# Details
+The script that is run every 10 minutes will use an api provided by [ipify.org](https://www.ipify.org/), to get the current IP address of the host, then compare with a "cache" file to see if the IP address has been changed, before making an API call to Cloudflare through [Lexicon](https://github.com/AnalogJ/lexicon), to update the DNS entry. Lexicon is useful becuse it allows you to use the same API for any DNS provider, meaning you could theoretically use the same script, with a different `.env` file for any provider.
+
