@@ -45,6 +45,8 @@ Installation:
 get clone git@github.com:versi786/subway-led-matrix.git
 cd ./subway-led-matrix
 ./scripts/install.sh
+
+echo MTA_API_KEY=XXXXXXXXXXXXXXXXXXXXXXXX >> .env
 ```
 
 List all stops available:
