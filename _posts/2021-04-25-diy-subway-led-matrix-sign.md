@@ -17,9 +17,6 @@ published: true
 ## `routes.txt`
 `routes.txt` will provide us with the deails about each line in the system, this will give us the `route_short_name`, for example `6`, and the `route_color` (green) and `route_text_color` (white). The `route_id` again will be used with the realtime data to provide which train is arriving at a given station.
 
-## GTFS Realtime
-# TODO
-
 
 # GTFS and the MTA:
 You can download the MTA's static GTFS data from [here](http://web.mta.info/developers/developer-data-terms.html). Scroll all the way down to the bottom and click `Yes, I agree to the these terms and conditions`, which will them provide you to a link to Download the "New York City Transit Subway" GTFS data [here](http://web.mta.info/developers/data/nyct/subway/google_transit.zip). When you run the matrix script, this data will be automatically downloaded to `/tmp` for you.
