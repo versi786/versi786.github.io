@@ -14,7 +14,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            
+            /* Use 100dvh to account for mobile address bars */
+            height: 100vh; /* Fallback */
+            height: 100dvh; 
+            
             margin: 0;
             
             /* Background changed to dark gray */
@@ -23,12 +27,13 @@
             
             /* Keeps the 5% buffer from the edge */
             padding: 5%; 
+
         }
 
         button {
             /* Sizing: Full width available, half the screen height */
-            width: 100%;       
-            height: 50vh;      
+            width: 100%;        
+            height: 50vh;       
             
             /* Visuals */
             background-color: #007bff;
@@ -36,15 +41,18 @@
             border: none;
             border-radius: 12px;
             cursor: pointer;
-            box-shadow: 0 10px 15px rgba(0,0,0,0.3); /* Darker shadow for dark mode */
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3); 
             transition: transform 0.1s, background-color 0.2s;
             
             /* Text Centering & Size */
-            font-size: 3rem;   
+            font-size: 3rem;    
             font-weight: bold;
             display: flex;
             justify-content: center;
             align-items: center;
+
+            /* OPTIONAL: Removes 300ms tap delay on mobile */
+            touch-action: manipulation;
         }
 
         button:hover {
