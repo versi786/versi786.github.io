@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Button</title>
+    <style>
+        /* CSS Styles */
+        * {
+            box-sizing: border-box; 
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            /* Use 100dvh to account for mobile address bars */
+            height: 100vh; /* Fallback */
+            height: 100dvh; 
+            
+            margin: 0;
+            
+            /* Background changed to dark gray */
+            background-color: #222222; 
+            font-family: Arial, sans-serif;
+            
+            /* Keeps the 5% buffer from the edge */
+            padding: 5%; 
+
+        }
+
+        button {
+            /* Sizing: Full width available, half the screen height */
+            width: 100%;        
+            height: 50vh;       
+            
+            /* Visuals */
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3); 
+            transition: transform 0.1s, background-color 0.2s;
+            
+            /* Text Centering & Size */
+            font-size: 3rem;    
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            /* OPTIONAL: Removes 300ms tap delay on mobile */
+            touch-action: manipulation;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:active {
+            transform: scale(0.98); 
+            box-shadow: 0 5px 8px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <button id="playBtn">PLAY</button>
+
+    <audio id="audioSource" src="./clicker.mp3"></audio>
+
+    <script>
+        const button = document.getElementById('playBtn');
+        const audio = document.getElementById('audioSource');
+
+        button.addEventListener('click', () => {
+            audio.currentTime = 0; 
+            audio.play();
+        });
+    </script>
+
+</body>
+</html>
