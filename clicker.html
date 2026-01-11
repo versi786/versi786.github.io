@@ -7,38 +7,40 @@
     <style>
         /* CSS Styles */
         * {
-            box-sizing: border-box; /* Ensures padding calculates correctly into width/height */
+            box-sizing: border-box; 
         }
 
         body {
             display: flex;
-            justify-content: center; /* Centers horizontally */
-            align-items: center;     /* Centers vertically */
-            height: 100vh;           /* Full viewport height */
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             margin: 0;
-            background-color: #f0f2f5;
+            
+            /* Background changed to dark gray */
+            background-color: #222222; 
             font-family: Arial, sans-serif;
-
-            /* This ensures the content doesn't touch the very edge */
-            padding: 5%;
+            
+            /* Keeps the 5% buffer from the edge */
+            padding: 5%; 
         }
 
         button {
-            /* Sizing */
-            width: 100%;       /* Takes full available width (minus body padding) */
-            height: 50vh;      /* Takes exactly half the vertical viewport height */
-
+            /* Sizing: Full width available, half the screen height */
+            width: 100%;       
+            height: 50vh;      
+            
             /* Visuals */
             background-color: #007bff;
             color: white;
             border: none;
-            border-radius: 12px; /* Slightly larger rounded corners for a big button */
+            border-radius: 12px;
             cursor: pointer;
-            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3); /* Darker shadow for dark mode */
             transition: transform 0.1s, background-color 0.2s;
-
+            
             /* Text Centering & Size */
-            font-size: 3rem;   /* Large text for a large button */
+            font-size: 3rem;   
             font-weight: bold;
             display: flex;
             justify-content: center;
@@ -50,8 +52,8 @@
         }
 
         button:active {
-            transform: scale(0.98); /* Subtle shrink effect */
-            box-shadow: 0 5px 8px rgba(0,0,0,0.1);
+            transform: scale(0.98); 
+            box-shadow: 0 5px 8px rgba(0,0,0,0.3);
         }
     </style>
 </head>
@@ -66,8 +68,7 @@
         const audio = document.getElementById('audioSource');
 
         button.addEventListener('click', () => {
-            // Reset time to 0 to allow rapid clicking
-            audio.currentTime = 0;
+            audio.currentTime = 0; 
             audio.play();
         });
     </script>
