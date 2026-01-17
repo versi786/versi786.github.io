@@ -8,45 +8,45 @@
     <style>
         /* CSS Styles */
         * {
-            box-sizing: border-box; 
+            box-sizing: border-box;
         }
 
         body {
             display: flex;
             justify-content: center;
             align-items: center;
-            
+
             /* Use 100dvh to account for mobile address bars */
             height: 100vh; /* Fallback */
-            height: 100dvh; 
-            
+            height: 100dvh;
+
             margin: 0;
-            
+
             /* Background changed to dark gray */
-            background-color: #222222; 
+            background-color: #222222;
             font-family: Arial, sans-serif;
-            
+
             /* Keeps the 5% buffer from the edge */
-            padding: 5%; 
+            padding: 5%;
 
         }
 
         button {
             /* Sizing: Full width available, half the screen height */
-            width: 100%;        
-            height: 50vh;       
-            
+            width: 100%;
+            height: 50vh;
+
             /* Visuals */
             background-color: #007bff;
             color: white;
             border: none;
             border-radius: 12px;
             cursor: pointer;
-            box-shadow: 0 10px 15px rgba(0,0,0,0.3); 
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3);
             transition: transform 0.1s, background-color 0.2s;
-            
+
             /* Text Centering & Size */
-            font-size: 3rem;    
+            font-size: 3rem;
             font-weight: bold;
             display: flex;
             justify-content: center;
@@ -61,7 +61,7 @@
         }
 
         button:active {
-            transform: scale(0.98); 
+            transform: scale(0.98);
             box-shadow: 0 5px 8px rgba(0,0,0,0.3);
         }
     </style>
@@ -70,16 +70,38 @@
 
     <button id="playBtn">Click</button>
 
-    <audio id="audioSource" src="./clicker.mp3"></audio>
+
+
 
     <script>
-        const button = document.getElementById('playBtn');
-        const audio = document.getElementById('audioSource');
+    const button = document.getElementById('playBtn');
+    const audioUrl = './clicker.mp3';
+    let audioContext;
+    let audioBuffer;
+    let isLoaded = false;
 
-        button.addEventListener('click', () => {
-            audio.currentTime = 0; 
-            audio.play();
-        });
+    async function loadAudioBuffer() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const response = await fetch(audioUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        isLoaded = true;
+    }
+
+    async function playSound() {
+        if (!isLoaded) {
+            await loadAudioBuffer();
+        }
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.start(0);
+    }
+
+    // On first click, load and play; after that, play instantly
+    button.addEventListener('click', playSound);
     </script>
 
 </body>
