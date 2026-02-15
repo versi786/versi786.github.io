@@ -40,10 +40,6 @@ const config: GatsbyConfig = {
         ],
         externalLinks: [
           {
-            name: `Twitter`,
-            url: `https://twitter.com/contro_VERSI`,
-          },
-          {
             name: `Source`,
             url: `https://github.com/versi786/versi786.github.io`,
           },
