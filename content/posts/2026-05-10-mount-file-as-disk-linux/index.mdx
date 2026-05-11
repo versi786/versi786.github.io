@@ -1,0 +1,36 @@
+---
+title: Mount file as disk linux
+date: 2026-05-10
+---
+
+# Commnads
+```bash
+# create a file
+$ WORKDIR=/var/tmp
+# This will make an empty file with an apparent size of 2G
+$ truncate -s +2G "$WORKDIR/disk.img"
+# Make it a filesystem
+$ mkfs.ext4  "$WORKDIR/disk.img"
+
+# monut the new disk
+$ sudo mkdir /mnt/disk
+$ sudo mount -o loop "$WORKDIR/disk.img" /mnt/disk
+
+$ df -h /mnt/disk
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/loop20     2.0G   24K  1.8G   1% /mnt/disk
+
+# reisze the diskA
+# add 8G to the size
+truncate -s +8G "$WORKDIR/disk.img"
+$ sudo resize2fs /dev/loop20
+$ df -ah /mnt/disk/
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/loop20     9.8G   24K  9.4G   1% /mnt/disk
+```
+
+# Reference
+- https://askubuntu.com/questions/85977/how-do-i-create-a-file-and-mount-it-as-a-filesystem#comment127437_108594
+- https://www.baeldung.com/linux/img-raw-image-dump-file-management
+- https://www.simplified.guide/linux/disk-mount
+- https://askubuntu.com/questions/24027/how-can-i-resize-an-ext-root-partition-at-runtime
